@@ -1,0 +1,134 @@
+# BAR 1 gate rules — the single source of truth for both gate implementations
+#
+# Why this file exists: the thresholds used to live as Python constants inside
+# scripts/qa/review_cards.py, which meant the Python gate and the Rust gate
+# (crates/cardforge-qa, in the Open CardForge repo) could drift apart silently.
+# Both implementations read THIS file. Neither may hardcode a number declared here.
+#
+# Path-agnostic by design: the Open CardForge repo cannot carry AnkiTov's private
+# paths (.goose/, specs/localization/glossary.csv as a monorepo path), so this file
+# declares rules only — no filesystem locations.
+#
+# Parity is required on the `core` section only. `institutional` is AnkiTov's
+# additive layer and is not expected to exist in the community gate.
+
+rules_version: 1
+
+# Exit codes — verified against scripts/qa/review_cards.py line 480:
+#   return 1 if total_f else (2 if total_w else 0)
+exit_codes:
+  clean: 0
+  fails: 1
+  warns: 2
+
+# Gate modes. A mode changes WHICH layers run; it can never disable a core check.
+modes:
+  curriculum: [core, institutional]
+  personal: [core]
+
+# ---------------------------------------------------------------------------
+# CORE — structural SRS hygiene. Parity-tested across both implementations.
+# ---------------------------------------------------------------------------
+core:
+
+  card_anatomy:
+    self_contained: true                 # no cross-card references
+    no_pronoun_without_antecedent: true
+    no_prerequisite_ordering: true
+
+  fields:
+    definition_max_words: 15
+    definition_hard_ceiling_words: 22
+    definition_single_sentence: true
+    definition_max_clause_boundaries: 1
+    definition_forbidden: ["semicolon", "alternatively", "can also denote", "in older literary texts"]
+    example_max_words: 18
+    example_must_contain_term: true
+    back_max_chars: 400                  # strict in every mode, incl. specialist presets
+    aim_words_per_card: [12, 20]         # advisory target; over-length cloze is a FAIL, not a demotion
+
+  cloze:
+    exactly_one_deletion: true
+    max_rendered_chars_vocab: 120
+    max_rendered_chars_rules: 140
+    conform_pass_max_chars: 110          # deterministic $0 wrapping ceiling
+
+  type_in:
+    only_where_locale_template_exists: true
+    must_not_self_answer: true
+
+  markup_and_hygiene:
+    no_markdown: true
+    no_html: true
+    no_ipa_slashes: true
+    western_digits_mandatory: true       # applies to ar per owner decision (2026-10-17)
+    hype_tiers:
+      fail: "migrate the word list out of review_cards.py into specs/qa/hype-wordlists.yaml"
+      warn: "migrate the word list out of review_cards.py into specs/qa/hype-wordlists.yaml"
+
+  # Per-card hard gates. Median is advisory reporting only — never the gate.
+  readability:
+    default_grade_band: [7, 12]
+    grades_default: ["7","8","9","10","11","12"]
+    grades_exception: ["K","1","2"]
+    en: { per_card_fk_max: 8.5, median_fk_max: 7.5, syllables_per_word_max: 1.8, ascii_only: true }
+    european_cyrillic:
+      locales: [de, fr, es, it, pt, ru]
+      per_card_li_x_max: 36
+      median_li_x_max: 30
+      words_over_6_letters_max: 2
+      strip_target_term_and_curriculum_terms: true
+    semitic_rtl:
+      locales: [he, ar]
+      definition_max_words: 12
+      max_clause_boundaries: 1
+      non_term_word_max_letters: 7
+      proclitics_excluded: ["[הבלמוכש]", "ال"]
+      no_loanword_transliterations: true
+      rtl_wrapper_required: true
+    zh: { definition_max_hanzi: 28, example_max_hanzi: 32, hsk_1_3_share_min: 0.85 }
+    ja: { definition_max_chars: 45, example_max_chars: 50, mext_kyōiku_grade_check: true }
+    ko: { definition_max_blocks: 35, example_max_blocks: 42, non_term_syllables_max: 4 }
+    hi: { definition_max_words: 15, example_max_words: 18, ncert_grades: [6, 8], tadbhava_over_tatsama: true }
+
+  # Presets that relax readability must NOT keep a readability claim.
+  readability_claim:
+    crisp_everyday: "grade 7-8 claim retained"
+    technical_specialist: "no readability claim — badge must say so"
+    conversational_idiomatic: "no readability claim"
+
+  # Pack-level composition (advisory at card level, enforced at pack level).
+  composition:
+    cloze_floor_rules: 0.30
+    cloze_floor_vocab: 0.25
+    blueprint_preassign_buffer: 0.08
+    difficulty_spread: { foundation: 0.30, core: 0.50, stretch: 0.20 }
+    minimal_pair_contrast_cards_per_segment: 3   # rule packs
+    both_production_and_recognition_present: true
+    mandatory_coverage: true                     # no reserve-swap
+
+# ---------------------------------------------------------------------------
+# INSTITUTIONAL — AnkiTov-only additive layer. Not required in the community gate.
+# ---------------------------------------------------------------------------
+institutional:
+  citation_grounding:
+    applies_when: "source_type in [standard, wordlist]"
+    skipped_when: "source_type in [personal_prompt, user_notes, imported_deck]"
+    verifies: "term/concept presence + valid section/rank citation only — never claims lexical overlap proves paraphrase accuracy (that is Layer 3 judging)"
+  curriculum_terms:
+    optional_in_personal_mode: true
+    morphology_aware: true
+  native_signoff:
+    required_for_catalog_submission: true
+    catalog_submission_requires_mode: curriculum
+  provenance:
+    model_drafted_label: "model_drafted_pending_native_review"
+    model_modified_user_content: "must be labelled even on personal decks"
+    community_shelf_label: "community-contributed, unreviewed"
+
+# Parity fixture corpus: specs/qa/fixtures/bar1-parity.jsonl
+# CI runs both gates over the corpus and asserts identical verdicts and exit codes.
+parity:
+  fixture_corpus: specs/qa/fixtures/bar1-parity.jsonl
+  assert: [verdicts_identical, exit_codes_identical]
+  grandfathering: "on a rules_version bump, re-run over shipped packs; newly-failing packs are flagged, never retro-approved"
