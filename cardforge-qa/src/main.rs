@@ -49,6 +49,8 @@ fn main() {
             cloze_sent: field(line, "cloze_sent"),
             extra: field(line, "extra"),
             expected: field(line, "expected_verdict"),
+            back: field(line, "back"),
+            required_terms: field(line, "required_terms"),
             implemented: line.contains("\"implemented\":true"),
         };
         if !c.implemented {

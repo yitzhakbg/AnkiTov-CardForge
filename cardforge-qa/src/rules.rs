@@ -25,7 +25,12 @@ pub fn load(path: &str) -> Rules {
 
     for raw in text.lines() {
         let line = raw.trim_end();
-        let t = line.trim();
+        let mut t = line.trim();
+        // strip inline comments — a value like `400   # strict in every mode` must not
+        // fail to parse, which is how the back cap silently stopped firing.
+        if let Some((code, _)) = t.split_once(" #") {
+            t = code.trim();
+        }
         if t.is_empty() || t.starts_with('#') {
             continue;
         }

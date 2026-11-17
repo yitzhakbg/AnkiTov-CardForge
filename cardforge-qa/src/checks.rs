@@ -14,6 +14,8 @@ pub struct Case {
     pub cloze_sent: String,
     pub extra: String,
     pub expected: String,
+    pub back: String,
+    pub required_terms: String,
     pub implemented: bool,
 }
 
@@ -32,7 +34,7 @@ pub fn rendered(cloze: &str) -> String {
 
 pub fn run(rules: &Rules, c: &Case) -> Verdict {
     let mut fails: Vec<String> = Vec::new();
-    let warns: Vec<String> = Vec::new();
+    let mut warns: Vec<String> = Vec::new();
 
     if let Some(max) = rules.get("core.fields.definition_max_words") {
         if word_count(&c.definition) as f64 > max {
@@ -102,6 +104,28 @@ pub fn run(rules: &Rules, c: &Case) -> Verdict {
         .any(|c| ('\u{0660}'..='\u{0669}').contains(&c))
     {
         fails.push("core.markup_and_hygiene.western_digits_mandatory".into());
+    }
+
+    // core.type_in — the prompt must not contain the answer
+    if c.note_type == "type_in" && c.definition.to_lowercase().contains(&c.term.to_lowercase()) {
+        fails.push("core.type_in.must_not_self_answer".into());
+    }
+
+    // core.fields.back_max_chars — measured on the back field
+    if let Some(max) = rules.get("core.fields.back_max_chars") {
+        if c.back.chars().count() as f64 > max {
+            fails.push("core.fields.back_max_chars".into());
+        }
+    }
+
+    // institutional — runs only in curriculum mode, never in personal mode
+    if c.mode == "curriculum" && !c.required_terms.is_empty() {
+        for term in c.required_terms.split(',') {
+            let t = term.trim().to_lowercase();
+            if !t.is_empty() && !c.definition.to_lowercase().contains(&t) {
+                warns.push(format!("institutional.curriculum_terms (missing: {t})"));
+            }
+        }
     }
 
     Verdict { fails, warns }
