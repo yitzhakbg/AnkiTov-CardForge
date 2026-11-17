@@ -1,0 +1,1 @@
+/Volumes/YBG1TB4Mac/cardforge/target/debug/libcardforge_qa.rlib: /Volumes/YBG1TB4Mac/cardforge/cardforge-qa/src/checks.rs /Volumes/YBG1TB4Mac/cardforge/cardforge-qa/src/lib.rs /Volumes/YBG1TB4Mac/cardforge/cardforge-qa/src/rules.rs

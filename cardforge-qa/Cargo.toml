@@ -1,0 +1,9 @@
+[package]
+name = "cardforge-qa"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+
+[[bin]]
+name = "cardforge-qa"
+path = "src/main.rs"

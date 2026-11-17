@@ -88,7 +88,9 @@ pub fn concept_id_is_valid(s: &str) -> bool {
         Some(c) if c.is_ascii_lowercase() && c.is_ascii_alphabetic() => {}
         _ => return false,
     }
-    s[1..].chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
+    s[1..]
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-')
 }
 
 pub fn unit_is_valid(s: &str) -> bool {

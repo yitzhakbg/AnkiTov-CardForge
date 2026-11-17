@@ -5,3 +5,7 @@ version = 4
 [[package]]
 name = "cardforge-core"
 version = "0.1.0"
+
+[[package]]
+name = "cardforge-qa"
+version = "0.1.0"
